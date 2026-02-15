@@ -60,7 +60,7 @@ app.post('/api/search', async (req, res) => {
 
 // In production, serve the React app for all other routes
 if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
+  app.get('/{*path}', (req, res) => {
     res.sendFile(path.join(__dirname, '../dist/index.html'))
   })
 }
