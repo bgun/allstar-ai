@@ -1,13 +1,23 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { scrapeEbay } from './scrapers/ebay.js'
 import { scrapeCraigslist } from './scrapers/craigslist.js'
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
 const app = express()
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 
 app.use(cors())
 app.use(express.json())
+
+// Serve static files from the React app in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../dist')))
+}
 
 // Search endpoint
 app.post('/api/search', async (req, res) => {
@@ -48,6 +58,13 @@ app.post('/api/search', async (req, res) => {
   }
 })
 
+// In production, serve the React app for all other routes
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'))
+  })
+}
+
 app.listen(PORT, () => {
-  console.log(`Scraper server running on http://localhost:${PORT}`)
+  console.log(`Server running on port ${PORT}`)
 })

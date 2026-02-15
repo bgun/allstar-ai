@@ -17,7 +17,8 @@ export function SearchPage() {
     setHasSearched(true)
 
     try {
-      const response = await fetch('http://localhost:3001/api/search', {
+      const apiUrl = import.meta.env.VITE_API_URL || '/api/search'
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

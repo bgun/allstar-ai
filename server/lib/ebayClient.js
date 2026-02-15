@@ -7,9 +7,16 @@ const EBAY_APP_ID = process.env.EBAY_APP_ID
 const EBAY_CERT_ID = process.env.EBAY_CERT_ID
 const EBAY_DEV_ID = process.env.EBAY_DEV_ID
 
-// Using sandbox environment - change to production later
-const OAUTH_BASE_URL = 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
-const API_BASE_URL = 'https://api.sandbox.ebay.com'
+// Use production or sandbox based on environment
+const isProduction = process.env.NODE_ENV === 'production'
+const OAUTH_BASE_URL = isProduction
+  ? 'https://api.ebay.com/identity/v1/oauth2/token'
+  : 'https://api.sandbox.ebay.com/identity/v1/oauth2/token'
+const API_BASE_URL = isProduction
+  ? 'https://api.ebay.com'
+  : 'https://api.sandbox.ebay.com'
+
+console.log(`eBay API mode: ${isProduction ? 'PRODUCTION' : 'SANDBOX'}`)
 
 class EbayClient {
   constructor() {
