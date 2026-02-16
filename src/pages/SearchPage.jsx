@@ -77,7 +77,7 @@ export default function SearchPage() {
   const [prefs, setPrefs] = useState(DEFAULT_PREFERENCES)
   const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [showHistory, setShowHistory] = useState(false)
-  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(true)
   const historyRef = useRef(null)
   const inputRef = useRef(null)
 
@@ -197,19 +197,6 @@ export default function SearchPage() {
         <div className="bg-gray-50 border border-gray-200 rounded-md p-3 mb-4 space-y-2">
           {/* Row 1: Category, Conditions, Sort */}
           <div className="flex flex-wrap items-center gap-3">
-            <label className="text-xs text-gray-500">
-              Category
-              <select
-                value={prefs.category_id}
-                onChange={(e) => setPrefs({ ...prefs, category_id: e.target.value })}
-                className="ml-1 text-xs px-1 py-0.5 border border-gray-300 rounded"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.id} value={c.id}>{c.label}</option>
-                ))}
-              </select>
-            </label>
-
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500">Condition:</span>
               {CONDITIONS.map((c) => (
@@ -274,6 +261,18 @@ export default function SearchPage() {
                 onChange={(e) => setPrefs({ ...prefs, craigslist_city: e.target.value })}
                 placeholder="denver"
                 className="ml-1 w-20 text-xs px-1 py-0.5 border border-gray-300 rounded"
+              />
+            </label>
+
+            <label className="text-xs text-gray-500">
+              Radius (mi)
+              <input
+                type="number"
+                value={prefs.craigslist_distance || ''}
+                onChange={(e) => setPrefs({ ...prefs, craigslist_distance: e.target.value })}
+                placeholder="1000"
+                min="0"
+                className="ml-1 w-16 text-xs px-1 py-0.5 border border-gray-300 rounded"
               />
             </label>
 
