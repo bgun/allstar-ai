@@ -12,6 +12,7 @@ const DEFAULT_PREFERENCES = {
   vehicle_model: '',
   sort: 'newlyListed',
   max_price: '',
+  craigslist_enabled: true,
   craigslist_city: 'denver',
   craigslist_lat: '39.6654',
   craigslist_lon: '-105.1062',
@@ -253,18 +254,29 @@ export default function SearchPage() {
               />
             </div>
 
-            <label className="text-xs text-gray-500">
+            <label className="flex items-center gap-1 text-xs text-gray-500">
+              <input
+                type="checkbox"
+                checked={prefs.craigslist_enabled !== false}
+                onChange={(e) => setPrefs({ ...prefs, craigslist_enabled: e.target.checked })}
+                className="w-3 h-3"
+              />
+              Craigslist
+            </label>
+
+            <label className={`text-xs ${prefs.craigslist_enabled !== false ? 'text-gray-500' : 'text-gray-300'}`}>
               CL City
               <input
                 type="text"
                 value={prefs.craigslist_city || ''}
                 onChange={(e) => setPrefs({ ...prefs, craigslist_city: e.target.value })}
                 placeholder="denver"
-                className="ml-1 w-20 text-xs px-1 py-0.5 border border-gray-300 rounded"
+                disabled={prefs.craigslist_enabled === false}
+                className="ml-1 w-20 text-xs px-1 py-0.5 border border-gray-300 rounded disabled:bg-gray-100 disabled:text-gray-300"
               />
             </label>
 
-            <label className="text-xs text-gray-500">
+            <label className={`text-xs ${prefs.craigslist_enabled !== false ? 'text-gray-500' : 'text-gray-300'}`}>
               Radius (mi)
               <input
                 type="number"
@@ -272,7 +284,8 @@ export default function SearchPage() {
                 onChange={(e) => setPrefs({ ...prefs, craigslist_distance: e.target.value })}
                 placeholder="1000"
                 min="0"
-                className="ml-1 w-16 text-xs px-1 py-0.5 border border-gray-300 rounded"
+                disabled={prefs.craigslist_enabled === false}
+                className="ml-1 w-16 text-xs px-1 py-0.5 border border-gray-300 rounded disabled:bg-gray-100 disabled:text-gray-300"
               />
             </label>
 

@@ -45,20 +45,27 @@ app.get('/api/search', async (req, res) => {
     const userData = await loadUserPreferences(user_id)
     const prefs = userData?.preferences || {}
 
-    const [ebayResult, craigslistResult] = await Promise.allSettled([
-      searchEbay(q, prefs),
-      searchCraigslist(q, {
-        city: prefs.craigslist_city || 'denver',
-        lat: prefs.craigslist_lat,
-        lon: prefs.craigslist_lon,
-        search_distance: prefs.craigslist_distance,
-      }),
-    ])
+    const clEnabled = prefs.craigslist_enabled !== false
+
+    const searches = [searchEbay(q, prefs)]
+    if (clEnabled) {
+      searches.push(
+        searchCraigslist(q, {
+          city: prefs.craigslist_city || 'denver',
+          lat: prefs.craigslist_lat,
+          lon: prefs.craigslist_lon,
+          search_distance: prefs.craigslist_distance,
+        })
+      )
+    }
+
+    const [ebayResult, craigslistResult] = await Promise.allSettled(searches)
 
     const ebayData =
       ebayResult.status === 'fulfilled' ? ebayResult.value : { items: [], url: null }
-    const craigslistData =
-      craigslistResult.status === 'fulfilled' ? craigslistResult.value : { items: [], url: null }
+    const craigslistData = clEnabled && craigslistResult
+      ? (craigslistResult.status === 'fulfilled' ? craigslistResult.value : { items: [], url: null })
+      : { items: [], url: null }
 
     const ebayResults = ebayData.items
     const craigslistResults = craigslistData.items

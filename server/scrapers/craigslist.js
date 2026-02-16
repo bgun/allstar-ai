@@ -1,5 +1,4 @@
 import axios from 'axios'
-import * as cheerio from 'cheerio'
 
 export async function searchCraigslist(query, opts = {}) {
   const city = opts.city || 'denver'
@@ -7,92 +6,97 @@ export async function searchCraigslist(query, opts = {}) {
   const lon = opts.lon || -105.1062
   const search_distance = opts.search_distance || 1000
 
-  const params = new URLSearchParams({
+  const apiUrl = `https://sapi.craigslist.org/web/v8/postings/search/full`
+  const params = {
+    batch: '11-0-360-0-0',
+    cc: 'US',
+    lang: 'en',
+    searchPath: 'pta',
     query,
     lat: String(lat),
     lon: String(lon),
     search_distance: String(search_distance),
-  })
-  const url = `https://${city}.craigslist.org/search/${city}-co/pta?${params}`
+  }
 
-  const { data } = await axios.get(url, {
+  const browseUrl = `https://${city}.craigslist.org/search/${city}-co/pta?query=${encodeURIComponent(query)}&lat=${lat}&lon=${lon}&search_distance=${search_distance}`
+
+  const { data } = await axios.get(apiUrl, {
+    params,
     headers: {
       'User-Agent':
         'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     },
   })
 
-  const $ = cheerio.load(data)
+  const decode = data?.data?.decode || {}
+  const items = data?.data?.items || []
+  const minPostedDate = decode.minPostedDate || 0
+  const minPostingId = decode.minPostingId || 0
+  const locations = decode.locations || []
+  const locDescriptions = decode.locationDescriptions || []
 
-  // Parse structured data for images and prices
-  const structuredData = {}
-  try {
-    const ldJson = $('#ld_searchpage_results').html()
-    if (ldJson) {
-      const parsed = JSON.parse(ldJson)
-      const items = parsed.itemListElement || []
-      items.forEach((entry) => {
-        const product = entry.item
-        if (product?.name) {
-          structuredData[product.name] = {
-            image: Array.isArray(product.image)
-              ? product.image[0]
-              : product.image || null,
-            price_cents: product.offers?.price
-              ? Math.round(parseFloat(product.offers.price) * 100)
-              : null,
-            location: product.offers?.availableAtOrFrom?.address
-              ? [
-                  product.offers.availableAtOrFrom.address.addressLocality,
-                  product.offers.availableAtOrFrom.address.addressRegion,
-                ]
-                  .filter(Boolean)
-                  .join(', ')
-              : null,
-          }
+  const results = items.slice(0, 25).map((item) => {
+    const postingId = minPostingId + item[0]
+    const postedTs = minPostedDate + item[1]
+    const title = item[item.length - 1]
+    const priceNum = item[3]
+
+    // Parse location: "areaIdx:neighIdx~lat~lon"
+    const locStr = item[4] || ''
+    const locParts = locStr.split('~')
+    const areaParts = (locParts[0] || '').split(':')
+    const areaIdx = parseInt(areaParts[0]) || 0
+    const area = locations[areaIdx]
+    const areaName = area?.[1] || city
+    const subArea = area?.[2] || null
+
+    // Neighborhood description from locationDescriptions (index in field[3] doesn't apply — use areaParts[1])
+    const neighIdx = parseInt(areaParts[1]) || 0
+    const neighborhoods = decode.neighborhoods || []
+    const neighName = neighIdx > 0 && neighIdx < neighborhoods.length ? neighborhoods[neighIdx] : null
+
+    // Build listing URL from tagged fields
+    let linkSlug = null
+    let imageUrl = null
+    let priceStr = null
+
+    for (const field of item) {
+      if (!Array.isArray(field)) continue
+      if (field[0] === 6 && field.length >= 2) {
+        linkSlug = field[1]
+      } else if (field[0] === 4 && field.length >= 2) {
+        // First image
+        const imgId = field[1]
+        if (typeof imgId === 'string') {
+          const cleanId = imgId.startsWith('3:') ? imgId.slice(2) : imgId
+          imageUrl = `https://images.craigslist.org/${cleanId}_600x450.jpg`
         }
-      })
+      } else if (field[0] === 10 && field.length >= 2) {
+        priceStr = field[1]
+      }
     }
-  } catch {
-    // structured data parsing is best-effort
-  }
 
-  const results = []
+    const urlBase = subArea
+      ? `https://${areaName}.craigslist.org/${subArea}/pts/d`
+      : `https://${areaName}.craigslist.org/pts/d`
+    const link = linkSlug ? `${urlBase}/${linkSlug}/${postingId}.html` : null
 
-  $('li.cl-static-search-result').each((_i, el) => {
-    const title = $(el).find('.title').text().trim()
-    const price = $(el).find('.price').text().trim()
-    const link = $(el).find('a').attr('href')
-    const locationText = $(el).find('.location').text().trim()
+    const locationText = neighName || locDescriptions[areaIdx] || areaName || null
 
-    if (title) {
-      const sd = structuredData[title] || {}
-      results.push({
-        title,
-        price: price || null,
-        price_cents: sd.price_cents || parsePriceCents(price),
-        link,
-        image: sd.image || null,
-        source: 'craigslist',
-        external_id: link ? extractCraigslistId(link) : null,
-        condition: null,
-        listing_date: null, // not available from search results
-        location: locationText || sd.location || null,
-        seller_name: null,
-      })
+    return {
+      title,
+      price: priceStr || (priceNum ? `$${priceNum}` : null),
+      price_cents: priceNum ? priceNum * 100 : null,
+      link,
+      image: imageUrl,
+      source: 'craigslist',
+      external_id: String(postingId),
+      condition: null,
+      listing_date: new Date(postedTs * 1000).toISOString(),
+      location: locationText,
+      seller_name: null,
     }
   })
 
-  return { items: results.slice(0, 25), url }
-}
-
-function parsePriceCents(priceStr) {
-  if (!priceStr) return null
-  const match = priceStr.replace(/,/g, '').match(/(\d+(?:\.\d+)?)/)
-  return match ? Math.round(parseFloat(match[1]) * 100) : null
-}
-
-function extractCraigslistId(url) {
-  const match = url.match(/\/(\d+)\.html/)
-  return match ? match[1] : null
+  return { items: results, url: browseUrl }
 }
