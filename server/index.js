@@ -11,9 +11,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = process.env.PORT || 3001
 
-// Parse JSON for most routes, but the eBay deletion POST needs raw body
-// for signature verification. We use express.raw() specifically for that path.
-app.use('/api/ebay-deletion', express.raw({ type: 'application/json' }))
 app.use(express.json())
 
 // Health check
