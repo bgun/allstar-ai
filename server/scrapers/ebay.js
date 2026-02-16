@@ -8,9 +8,6 @@ const DEFAULT_PREFERENCES = {
   condition_ids: ['3000'],
   excluded_keywords: ['parting out', 'whole car', 'complete vehicle'],
   buying_options: ['FIXED_PRICE', 'BEST_OFFER', 'AUCTION'],
-  vehicle_year: null,
-  vehicle_make: null,
-  vehicle_model: null,
   sort: 'newlyListed',
   max_price: '500',
   brand_type_oem: true,
@@ -72,6 +69,10 @@ function buildFilterString(prefs) {
 
 function buildQuery(baseQuery, prefs) {
   let q = baseQuery
+  // Ensure "headlight" is in the query so eBay returns headlights, not random parts
+  if (!/headlight/i.test(q)) {
+    q = `${q} headlight`
+  }
   if (prefs.excluded_keywords?.length) {
     const exclusions = prefs.excluded_keywords
       .map((kw) => `-"${kw}"`)
@@ -79,14 +80,6 @@ function buildQuery(baseQuery, prefs) {
     q = `${q} ${exclusions}`
   }
   return q
-}
-
-function buildCompatibilityFilter(prefs) {
-  const parts = []
-  if (prefs.vehicle_year) parts.push(`Year:${prefs.vehicle_year}`)
-  if (prefs.vehicle_make) parts.push(`Make:${prefs.vehicle_make}`)
-  if (prefs.vehicle_model) parts.push(`Model:${prefs.vehicle_model}`)
-  return parts.length ? parts.join(',') : undefined
 }
 
 function buildAspectFilter(prefs) {
@@ -115,7 +108,7 @@ export async function searchEbay(query, preferences = {}) {
 
   const params = {
     q: buildQuery(query, prefs),
-    limit: 25,
+    limit: 100,
     sort: prefs.sort || 'newlyListed',
   }
 
@@ -126,11 +119,6 @@ export async function searchEbay(query, preferences = {}) {
   const filter = buildFilterString(prefs)
   if (filter) {
     params.filter = filter
-  }
-
-  const compatibility = buildCompatibilityFilter(prefs)
-  if (compatibility) {
-    params.compatibility_filter = compatibility
   }
 
   const aspectFilter = buildAspectFilter(prefs)

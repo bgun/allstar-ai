@@ -35,7 +35,7 @@ export async function searchCraigslist(query, opts = {}) {
   const locations = decode.locations || []
   const locDescriptions = decode.locationDescriptions || []
 
-  const results = items.slice(0, 25).map((item) => {
+  const results = items.slice(0, 100).map((item) => {
     const postingId = minPostingId + item[0]
     const postedTs = minPostedDate + item[1]
     const title = item[item.length - 1]

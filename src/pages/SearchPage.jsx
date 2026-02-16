@@ -7,9 +7,6 @@ const DEFAULT_PREFERENCES = {
   condition_ids: ['3000'],
   excluded_keywords: ['parting out', 'whole car', 'complete vehicle'],
   buying_options: ['FIXED_PRICE', 'BEST_OFFER', 'AUCTION'],
-  vehicle_year: '',
-  vehicle_make: '',
-  vehicle_model: '',
   sort: 'newlyListed',
   max_price: '500',
   brand_type_oem: true,
@@ -102,9 +99,6 @@ export default function SearchPage() {
     if (!user) return
     const toSave = {
       ...prefs,
-      vehicle_year: prefs.vehicle_year || null,
-      vehicle_make: prefs.vehicle_make || null,
-      vehicle_model: prefs.vehicle_model || null,
       max_price: prefs.max_price || null,
     }
     await supabase
@@ -123,8 +117,8 @@ export default function SearchPage() {
     setFiltered(null)
     setShowHistory(false)
 
-    // Save prefs and search history
-    savePrefs()
+    // Save prefs (await so server reads fresh values) and search history
+    await savePrefs()
     saveSearchHistory(q.trim())
 
     try {
@@ -224,33 +218,8 @@ export default function SearchPage() {
             </label>
           </div>
 
-          {/* Row 2: Vehicle, Craigslist, CL City, Radius */}
+          {/* Row 2: Craigslist, CL City, Radius */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1">
-              <span className="text-xs text-gray-500">Vehicle:</span>
-              <input
-                type="text"
-                value={prefs.vehicle_year || ''}
-                onChange={(e) => setPrefs({ ...prefs, vehicle_year: e.target.value })}
-                placeholder="Year"
-                className="w-14 text-xs px-1 py-0.5 border border-gray-300 rounded"
-              />
-              <input
-                type="text"
-                value={prefs.vehicle_make || ''}
-                onChange={(e) => setPrefs({ ...prefs, vehicle_make: e.target.value })}
-                placeholder="Make"
-                className="w-16 text-xs px-1 py-0.5 border border-gray-300 rounded"
-              />
-              <input
-                type="text"
-                value={prefs.vehicle_model || ''}
-                onChange={(e) => setPrefs({ ...prefs, vehicle_model: e.target.value })}
-                placeholder="Model"
-                className="w-16 text-xs px-1 py-0.5 border border-gray-300 rounded"
-              />
-            </div>
-
             <label className="flex items-center gap-1 text-xs text-gray-500">
               <input
                 type="checkbox"
@@ -345,49 +314,49 @@ export default function SearchPage() {
       {error && <p className="text-red-600 mb-4">{error}</p>}
 
       {results.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {results.map((item, i) => (
-            <div key={i} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm flex flex-col">
+            <div key={i} className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm flex flex-col">
               {item.image && (
                 <img
                   src={item.image}
                   alt={item.title}
-                  className="w-full h-48 object-cover rounded mb-3"
+                  className="w-full h-36 object-cover rounded mb-2"
                 />
               )}
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-1.5 mb-1">
                 <span
-                  className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                  className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
                     item.source === 'ebay'
                       ? 'bg-blue-100 text-blue-700'
                       : 'bg-purple-100 text-purple-700'
                   }`}
                 >
-                  {item.source === 'ebay' ? 'eBay' : 'Craigslist'}
+                  {item.source === 'ebay' ? 'eBay' : 'CL'}
                 </span>
                 {item.listing_date && (
-                  <span className="text-xs text-gray-400">{timeAgo(item.listing_date)}</span>
+                  <span className="text-[10px] text-gray-400">{timeAgo(item.listing_date)}</span>
                 )}
                 {item.condition && (
-                  <span className="text-xs text-gray-400">{item.condition}</span>
+                  <span className="text-[10px] text-gray-400">{item.condition}</span>
                 )}
               </div>
-              <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2">{item.title}</h3>
-              <div className="mt-auto pt-2 flex items-center justify-between">
-                {item.price && <p className="text-green-700 font-bold">{item.price}</p>}
+              <h3 className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">{item.title}</h3>
+              <div className="mt-auto pt-1 flex items-center justify-between">
+                {item.price && <p className="text-green-700 font-bold text-sm">{item.price}</p>}
                 {item.link && (
                   <a
                     href={item.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 text-sm hover:underline"
+                    className="text-blue-600 text-xs hover:underline"
                   >
-                    View listing
+                    View
                   </a>
                 )}
               </div>
               {item.location && (
-                <p className="text-xs text-gray-400 mt-1">{item.location}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{item.location}</p>
               )}
             </div>
           ))}
