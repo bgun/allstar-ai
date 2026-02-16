@@ -6,6 +6,7 @@ import { searchEbay } from './scrapers/ebay.js'
 import { searchCraigslist } from './scrapers/craigslist.js'
 import { supabase, storeListings } from './lib/supabase.js'
 import { logSearch } from './lib/logger.js'
+import { filterByRelevance } from './lib/relevance.js'
 import ebayDeletionRouter from './routes/ebay-deletion.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -84,18 +85,22 @@ app.get('/api/search', async (req, res) => {
       return 0
     })
 
+    // Filter results for relevance using LLM
+    const { results: filteredResults, filtered } = await filterByRelevance(allResults, q)
+
     // Store in database (fire-and-forget, don't block response)
-    storeListings(allResults).catch((err) =>
+    storeListings(filteredResults).catch((err) =>
       console.error('Failed to store listings:', err.message)
     )
 
     res.json({
-      results: allResults,
+      results: filteredResults,
       query: q,
       sources: {
         ebay: { count: ebayResults.length, status: ebayResult.status },
         craigslist: { count: craigslistResults.length, status: craigslistResult.status },
       },
+      ...(filtered && { filtered }),
     })
   } catch (err) {
     console.error('Search error:', err.message)

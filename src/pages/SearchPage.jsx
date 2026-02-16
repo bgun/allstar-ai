@@ -20,6 +20,7 @@ export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [sources, setSources] = useState(null)
+  const [filtered, setFiltered] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -30,6 +31,7 @@ export default function SearchPage() {
     setError('')
     setResults([])
     setSources(null)
+    setFiltered(null)
     try {
       const params = new URLSearchParams({ q: query })
       if (user?.id) params.set('user_id', user.id)
@@ -38,6 +40,7 @@ export default function SearchPage() {
       if (!res.ok) throw new Error(data.error || 'Search failed')
       setResults(data.results || [])
       setSources(data.sources || null)
+      setFiltered(data.filtered || null)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -75,6 +78,9 @@ export default function SearchPage() {
             Craigslist: {sources.craigslist.count} results
             {sources.craigslist.status === 'rejected' && ' (failed)'}
           </span>
+          {filtered && (
+            <span>Showing {filtered.kept} of {filtered.original} results</span>
+          )}
         </div>
       )}
 
