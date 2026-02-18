@@ -77,6 +77,24 @@ app.post('/api/agent/trigger', async (req, res) => {
   }
 })
 
+app.post('/api/agent/grade-url', async (req, res) => {
+  if (!AGENT_URL) return res.status(503).json({ error: 'AGENT_URL not configured' })
+  try {
+    const resp = await fetch(`${AGENT_URL}/grade-url`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${AGENT_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ url: req.body.url }),
+    })
+    const data = await resp.json()
+    res.status(resp.status).json(data)
+  } catch (err) {
+    res.status(503).json({ error: 'Agent unreachable', detail: err.message })
+  }
+})
+
 // eBay Marketplace Account Deletion notifications
 app.use('/api/ebay-deletion', ebayDeletionRouter)
 

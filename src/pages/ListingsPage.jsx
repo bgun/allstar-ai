@@ -162,6 +162,10 @@ export default function ListingsPage() {
   const [selectedListing, setSelectedListing] = useState(null)
   const [feedbackSent, setFeedbackSent] = useState(new Set())
   const [runInfo, setRunInfo] = useState(null)
+  const [gradeUrl, setGradeUrl] = useState('')
+  const [grading, setGrading] = useState(false)
+  const [gradeResult, setGradeResult] = useState(null)
+  const [gradeError, setGradeError] = useState(null)
 
   useEffect(() => {
     loadGradedListings()
@@ -201,6 +205,31 @@ export default function ListingsPage() {
     setLoading(false)
   }
 
+  async function handleGradeUrl(e) {
+    e.preventDefault()
+    if (!gradeUrl.trim() || grading) return
+    setGrading(true)
+    setGradeResult(null)
+    setGradeError(null)
+    try {
+      const resp = await fetch('/api/agent/grade-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: gradeUrl.trim() }),
+      })
+      const data = await resp.json()
+      if (!resp.ok) {
+        setGradeError(data.error || 'Failed to grade URL')
+      } else {
+        setGradeResult(data)
+      }
+    } catch (err) {
+      setGradeError(err.message || 'Network error')
+    } finally {
+      setGrading(false)
+    }
+  }
+
   async function handleFeedbackSubmit(feedback) {
     const { error } = await supabase
       .from('buyer_feedback')
@@ -230,6 +259,80 @@ export default function ListingsPage() {
           </div>
         )}
       </div>
+
+      <form onSubmit={handleGradeUrl} className="mb-6 flex gap-2">
+        <input
+          type="url"
+          value={gradeUrl}
+          onChange={(e) => setGradeUrl(e.target.value)}
+          placeholder="Paste an eBay or Craigslist URL to grade..."
+          className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          disabled={grading}
+        />
+        <button
+          type="submit"
+          disabled={grading || !gradeUrl.trim()}
+          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 cursor-pointer flex items-center gap-2"
+        >
+          {grading && (
+            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {grading ? 'Grading...' : 'Grade'}
+        </button>
+      </form>
+
+      {gradeError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+          {gradeError}
+        </div>
+      )}
+
+      {gradeResult && (
+        <div className="mb-6 p-4 bg-white border border-gray-200 rounded-lg shadow-sm">
+          <div className="flex items-start gap-4">
+            {gradeResult.image && (
+              <img
+                src={gradeResult.image}
+                alt={gradeResult.title}
+                className="w-24 h-24 object-cover rounded"
+              />
+            )}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3 mb-1">
+                <GradeBadge grade={gradeResult.grade} score={gradeResult.score} />
+                <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                  gradeResult.source === 'ebay' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                }`}>
+                  {gradeResult.source === 'ebay' ? 'eBay' : 'CL'}
+                </span>
+                {gradeResult.price && <span className="text-sm font-bold text-green-700">{gradeResult.price}</span>}
+              </div>
+              <h3 className="text-sm font-semibold text-gray-900 mb-1">{gradeResult.title}</h3>
+              <p className="text-sm text-gray-600 mb-2">{gradeResult.rationale}</p>
+              {gradeResult.flags?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {gradeResult.flags.map((flag, i) => (
+                    <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">{flag}</span>
+                  ))}
+                </div>
+              )}
+              {gradeResult.link && (
+                <a
+                  href={gradeResult.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline"
+                >
+                  View listing
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {listings.length === 0 ? (
         <p className="text-gray-500 text-center py-12">No graded listings yet. The agent hasn't run or no listings have been graded.</p>
