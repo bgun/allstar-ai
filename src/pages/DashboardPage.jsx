@@ -53,7 +53,8 @@ function eventSummary(event) {
       return `Failed: ${p.error || p.title || 'unknown'}`
     case 'run_completed': {
       const by = p.triggered_by ? ` by ${p.triggered_by}` : ' by Automated'
-      return `Run complete${by}: ${p.graded ?? p.listings_graded ?? '?'} graded, avg ${p.average_score ? Math.round(p.average_score) : '?'}`
+      const dupes = p.duplicates_skipped ? `, ${p.duplicates_skipped} dupes` : ''
+      return `Run complete${by}: ${p.graded ?? p.listings_graded ?? '?'} graded${dupes}, avg ${p.average_score ? Math.round(p.average_score) : '?'}`
     }
     case 'run_failed':
       return `Run failed: ${p.error || 'unknown error'}`
@@ -87,6 +88,8 @@ export default function DashboardPage() {
   const [systemPrompt, setSystemPrompt] = useState(null)
   const [promptLoading, setPromptLoading] = useState(false)
   const [pendingRun, setPendingRun] = useState(null) // null | { dryRun: boolean }
+  const [listingStats, setListingStats] = useState(null)
+  const [stopping, setStopping] = useState(false)
   const eventsEndRef = useRef(null)
 
   const userName = user?.user_metadata?.full_name || user?.email || null
@@ -127,6 +130,33 @@ export default function DashboardPage() {
     }
   }
 
+  async function fetchStats() {
+    try {
+      const res = await fetch('/api/agent/stats')
+      if (res.ok) {
+        const data = await res.json()
+        setListingStats(data)
+      }
+    } catch {
+      // non-critical
+    }
+  }
+
+  async function stopAgent() {
+    setStopping(true)
+    try {
+      const res = await fetch('/api/agent/stop', { method: 'POST' })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || 'Failed to stop')
+      }
+    } catch (err) {
+      alert(`Failed to reach agent: ${err.message}`)
+    } finally {
+      setStopping(false)
+    }
+  }
+
   async function fetchSystemPrompt() {
     setPromptLoading(true)
     try {
@@ -145,6 +175,7 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData()
     checkAgentHealth()
+    fetchStats()
 
     // Poll agent health every 30s
     const healthInterval = setInterval(checkAgentHealth, 30000)
@@ -207,7 +238,24 @@ export default function DashboardPage() {
           {agentStatus === 'online' ? 'Agent Online' : agentStatus === 'offline' ? 'Agent Offline' : 'Checking...'}
         </span>
 
+        {listingStats && (
+          <div className="flex gap-3 text-xs text-gray-500">
+            <span>{listingStats.total} listings</span>
+            <span className="text-green-600">{listingStats.graded} graded</span>
+            <span className="text-orange-500">{listingStats.ungraded} ungraded</span>
+          </div>
+        )}
+
         <div className="ml-auto flex gap-2">
+          {agentRunning && (
+            <button
+              onClick={stopAgent}
+              disabled={stopping}
+              className="px-3 py-1.5 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50 cursor-pointer"
+            >
+              {stopping ? 'Stopping...' : 'Stop Run'}
+            </button>
+          )}
           <button
             onClick={fetchSystemPrompt}
             disabled={promptLoading}
@@ -288,6 +336,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex gap-4 text-xs text-gray-600">
                       <span>Scraped: {run.listings_scraped}</span>
+                      {run.duplicates_skipped > 0 && <span>Dupes: {run.duplicates_skipped}</span>}
                       <span>Graded: {run.listings_graded}</span>
                       <span>Failed: {run.listings_failed}</span>
                       {run.average_score && <span>Avg: {Math.round(run.average_score)}</span>}
