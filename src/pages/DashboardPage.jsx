@@ -364,12 +364,12 @@ export default function DashboardPage() {
             </h3>
             {pendingRun.dryRun ? (
               <div className="text-sm text-gray-600 space-y-2 mb-5">
-                <p>A dry run will scrape listings from eBay and Craigslist and store them in the database, but <strong>will not call the AI grading API</strong>.</p>
+                <p>A dry run will scrape listings from eBay and store them in the database, but <strong>will not call the AI grading API</strong>.</p>
                 <p>All listings will receive a placeholder grade of C/50. Use this to verify scraping is working without spending API tokens.</p>
               </div>
             ) : (
               <div className="text-sm text-gray-600 space-y-2 mb-5">
-                <p>A full run will scrape listings from eBay and Craigslist, then <strong>grade every ungraded listing using the Anthropic API</strong>.</p>
+                <p>A full run will scrape listings from eBay, then <strong>grade every ungraded listing using the Anthropic API</strong>.</p>
                 <p>This will consume API tokens proportional to the number of new listings found. Grading typically takes 1-3 minutes depending on volume.</p>
               </div>
             )}

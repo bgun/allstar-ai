@@ -178,14 +178,14 @@ function ManualEntryModal({ onClose, gradeUrl, setGradeUrl, grading, gradeResult
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 cursor-pointer text-xl leading-none">&times;</button>
         </div>
 
-        <p className="text-sm text-gray-500 mb-4">Paste an eBay or Craigslist URL to scrape and grade a single listing.</p>
+        <p className="text-sm text-gray-500 mb-4">Paste an eBay URL to scrape and grade a single listing.</p>
 
         <form onSubmit={onSubmit} className="flex gap-2 mb-4">
           <input
             type="url"
             value={gradeUrl}
             onChange={(e) => setGradeUrl(e.target.value)}
-            placeholder="Paste an eBay or Craigslist URL..."
+            placeholder="Paste an eBay URL..."
             className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={grading}
           />
@@ -565,7 +565,7 @@ export default function ListingsPage() {
                       className="inline-block bg-blue-600 text-white text-xs font-medium px-2.5 py-1 rounded hover:bg-blue-700"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      Open on {listing.source === 'ebay' ? 'eBay' : 'Craigslist'}
+                      Open on eBay
                     </a>
                   )}
                 </div>

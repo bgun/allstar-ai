@@ -202,7 +202,7 @@ export default function MyListingsPage() {
                       rel="noopener noreferrer"
                       className="inline-block bg-blue-600 text-white text-xs font-medium px-2.5 py-1 rounded hover:bg-blue-700"
                     >
-                      Open on {listing.source === 'ebay' ? 'eBay' : 'Craigslist'}
+                      Open on eBay
                     </a>
                   )}
                 </div>
